@@ -22,6 +22,8 @@
 * `th:text="${name}"` `th:text`는 태그 내부 텍스트에 대한 속성이며 모델 안의 키값에 해당하는 `${key}`으로 모델의 해당 키의 밸류값을 받는다.
 * `"th:replace="fragments/common :: menu('home')"` fragments.common.html 에서 `th:fragment="menu"` 속성이 있는 태그를 찾아서 대체한다. 
 * `th:classappend="${menu} == 'board'? 'active'"` menu의 밸류가 'board'면 class에 active 속성을 추가한다. 
+* `th:text="${#lists.size(boards)}` 전달 받은 boards 변수(List)의 크기를 알려주는 Thymeleaf 문법 
+* `th:each="board : ${boards}"` boards 변수의 각 값을 boards로 변수로 선언하여 받는다.
 
 ### Controller
 * `@GetMappin("/url")` 어노테이션으로 url의 GET 요청을 받는다.
@@ -37,3 +39,6 @@
 * 객체 관계형 매핑(Object-relational mapping)은 한마디로 쿼리 없이 클래스만 이용해서 데이터베이스에 쉽게 접근할 수 있도록 하는 기술이다. JPA(Java Persistence API)는 자바에서 ORM을 어떻게 구현하는지에 대한 기술 스펙이다. JPA를 구현한 구현체 중에 가장 유명한 것이 hibernate이다.
 * resources/application.propertiesd에 mariadb관련 정보들을 넣는다. 깃허브에서는 보안을 위하여 업로드 하지 않았다.
 * model 패키지의 Board 클래스에서 데이터베이스에서 정의해둔 필드들을 클래스의 멤버 변수로 정의한다. lombok의 `@Data` 어노테이션으로 클래스의 멤버 변수들을 외부에서 사용할 수 있다. 데이터베이스 연동을 위한 모델 클래스임을 알려주기 위하여 `@Entitiy` 어노테이션을 추가한다. primary key인 id위에는 `Id` 어노테이션을 추가하고, 자동 증가를 위하여 `@GenerateValue(strategy=GenerationType.IDENTITY)` 를 선언한다. `IDENTITY` 말로 `SEQUENCE`를 사용하면 성능이 보다 좋지만 추가 작업이 필요한다.  
+* `JpaRepository<Board, Long>`를 상속받아서 레포지토리를 만든다.
+* Controller의 파라매터에 모델을 추가하여 모델에 레포지토리로부터 가져온 원하는 값을 넣는다. 이를 위하여 private으로 레포지토리를 선언하고 `@AutoWired`로 인스턴스를 받는다(DI). JpaRepository에서 제공하는 `findAll()` 메소드 등을 사용하여 데이터베이스로부터 가져온 값을 모델에 넣는다.
+* 
