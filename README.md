@@ -35,4 +35,5 @@
 
 ### JPA
 * 객체 관계형 매핑(Object-relational mapping)은 한마디로 쿼리 없이 클래스만 이용해서 데이터베이스에 쉽게 접근할 수 있도록 하는 기술이다. JPA(Java Persistence API)는 자바에서 ORM을 어떻게 구현하는지에 대한 기술 스펙이다. JPA를 구현한 구현체 중에 가장 유명한 것이 hibernate이다.
-  
+* resources/application.propertiesd에 mariadb관련 정보들을 넣는다. 깃허브에서는 보안을 위하여 업로드 하지 않았다.
+* model 패키지의 Board 클래스에서 데이터베이스에서 정의해둔 필드들을 클래스의 멤버 변수로 정의한다. lombok의 `@Data` 어노테이션으로 클래스의 멤버 변수들을 외부에서 사용할 수 있다. 데이터베이스 연동을 위한 모델 클래스임을 알려주기 위하여 `@Entitiy` 어노테이션을 추가한다. primary key인 id위에는 `Id` 어노테이션을 추가하고, 자동 증가를 위하여 `@GenerateValue(strategy=GenerationType.IDENTITY)` 를 선언한다. `IDENTITY` 말로 `SEQUENCE`를 사용하면 성능이 보다 좋지만 추가 작업이 필요한다.  
