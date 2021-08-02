@@ -1,7 +1,7 @@
 # 평화지수 웹 어플리케이션 코드 저장소 
 
 ## 프로젝트 설명
-평화지수 웹 어플리케이션 코드 저장소 입니다. Thymeleaf를 이용하여 레이아웃과 화면을 작성하였고 form을 전송합니다. JPA를 이용하여 게시판을 조회, RESTful Api를 작성하고 페이지를 검색합니다. 코딩의 신 Spring Boot으로 웹 출시까지 동영상에 큰 도움을 받았습니다.
+평화지수 웹 어플리케이션 코드 저장소 입니다. Thymeleaf를 이용하여 레이아웃과 화면을 작성하였고 form을 전송합니다. JPA(hibernate)를 이용하여 게시판을 조회, RESTful Api를 작성하고 페이지를 검색합니다. 코딩의 신 Spring Boot으로 웹 출시까지 동영상에 큰 도움을 받았습니다.
 (https://www.youtube.com/watch?v=FYkn9KOfkx0&list=PLPtc9qD1979DG675XufGs0-gBeb2mrona)
 
 ## 환경 및 세팅
@@ -32,4 +32,7 @@
 
 ### Lombok
 * 모델 클래스를 만드면 멤버 변수는 프라이빗, 게터/세터를 퍼블릭으로 선언해서 사용해야한다. 게터/세터를 어노테이션 하나로 생성한다. 
+
+### JPA
+* 객체 관계형 매핑(Object-relational mapping)은 한마디로 쿼리 없이 클래스만 이용해서 데이터베이스에 쉽게 접근할 수 있도록 하는 기술이다. JPA(Java Persistence API)는 자바에서 ORM을 어떻게 구현하는지에 대한 기술 스펙이다. JPA를 구현한 구현체 중에 가장 유명한 것이 hibernate이다.
   
