@@ -16,14 +16,20 @@
 * src/main/java/com.diplomacy.peaceindex/PeaceindexApplication.java를 실행시키시면 됩니다.
 
 ### Thymeleaf
+* 템플릿 엔진.
 * Thymeleaf는 resources/templates에 html 파일을 이용해 웹페이지를 만든다.
 * html파일의 html 태그에 `xmlns:th="http://www.thymeleaf.org"` 속성을 추가한다.
-* `th:text="${name}"` th:text는 태그 내부 텍스트에 대한 속성이며 모델 안의 키값에 해당하는 ${key}으로 모델의 해당 키의 밸류값을 받는다. 
+* `th:text="${name}"` `th:text`는 태그 내부 텍스트에 대한 속성이며 모델 안의 키값에 해당하는 `${key}`으로 모델의 해당 키의 밸류값을 받는다.
+* `"th:replace="fragments/common :: menu('home')"` fragments.common.html 에서 `th:fragment="menu"` 속성이 있는 태그를 찾아서 대체한다. 
+* `th:classappend="${menu} == 'board'? 'active'"` menu의 밸류가 'board'면 class에 active 속성을 추가한다. 
 
 ### Controller
-* @GetMappin("/url") 어노테이션으로 url의 GET 요청을 받는다.
-* @RequestParam 어노테이션으로 url/?의 파라매터 값을 받을 수 있다.
+* `@GetMappin("/url")` 어노테이션으로 url의 GET 요청을 받는다.
+* `@RequestParam` 어노테이션으로 url/?의 파라매터 값을 받을 수 있다.
 * 파라매터로 Model를 정의하면 Model 안에 키-밸류값을 넣을 수 있다.
 * 문자열을 리턴하면 templates의 해당 html 파일을 화면에 보여준다. 
-* @Controller로 어노테이션으로 컨트롤러임을 알려준다.
+* `@Controller`로 어노테이션으로 컨트롤러임을 알려준다.
+
+### Lombok
+* 모델 클래스를 만드면 멤버 변수는 프라이빗, 게터/세터를 퍼블릭으로 선언해서 사용해야한다. 게터/세터를 어노테이션 하나로 생성한다. 
   
