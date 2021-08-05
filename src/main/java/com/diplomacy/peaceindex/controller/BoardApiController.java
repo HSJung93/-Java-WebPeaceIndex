@@ -3,6 +3,7 @@ package com.diplomacy.peaceindex.controller;
 import com.diplomacy.peaceindex.model.Board;
 import com.diplomacy.peaceindex.repository.BoardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.*;
 import org.thymeleaf.util.StringUtils;
 
@@ -15,18 +16,15 @@ class BoardApiController {
     @Autowired
     private BoardRepository repository;
 
-    // Aggregate root
-    // tag::get-aggregate-root[]
     @GetMapping("/boards")
     List<Board> all(@RequestParam(required = false, defaultValue = "") String title,
-    @RequestParam(required=false, defaultValue = "") String content) {
+                    @RequestParam(required = false, defaultValue = "") String content) {
         if(StringUtils.isEmpty(title) && StringUtils.isEmpty(content)) {
             return repository.findAll();
         } else {
             return repository.findByTitleOrContent(title, content);
         }
     }
-    // end::get-aggregate-root[]
 
     @PostMapping("/boards")
     Board newBoard(@RequestBody Board newBoard) {
@@ -37,7 +35,6 @@ class BoardApiController {
 
     @GetMapping("/boards/{id}")
     Board one(@PathVariable Long id) {
-
         return repository.findById(id).orElse(null);
     }
 
@@ -45,10 +42,10 @@ class BoardApiController {
     Board replaceBoard(@RequestBody Board newBoard, @PathVariable Long id) {
 
         return repository.findById(id)
-                .map(Board -> {
-                    Board.setTitle(newBoard.getTitle());
-                    Board.setContent(newBoard.getContent());
-                    return repository.save(Board);
+                .map(board -> {
+                    board.setTitle(newBoard.getTitle());
+                    board.setContent(newBoard.getContent());
+                    return repository.save(board);
                 })
                 .orElseGet(() -> {
                     newBoard.setId(id);
@@ -56,6 +53,7 @@ class BoardApiController {
                 });
     }
 
+    @Secured("ROLE_ADMIN")
     @DeleteMapping("/boards/{id}")
     void deleteBoard(@PathVariable Long id) {
         repository.deleteById(id);

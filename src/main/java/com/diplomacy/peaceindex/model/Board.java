@@ -1,16 +1,15 @@
 package com.diplomacy.peaceindex.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 // 이 클래스가 데이터베이스 연동을 위한 모델 클래스임을 알려준다.
 //게터, 세터? 우리는 롬북을 추가해놨다!
+// @OneToOne join 없는 관계라 간단한 설정이 가능한 경우(One X Many 4가지 경우 가능)
 @Entity
 @Data
 public class Board {
@@ -22,5 +21,11 @@ public class Board {
     @Size(min=2, max=30, message = "제목은 2자 이상 30자 이하입니다.")
     private String title;
     private String content;
+
+    //Board 클래스에 User 정보를 넣어서 @ManyToOne 관계 만들기
+    @ManyToOne // ManyToOne 쪽에서 컬럼을 적어주고 One 쪽에서는 mappedBy로 양방향 매칭
+    @JoinColumn(name="user_id") // , referencedColumnName = "id" User에 @Id 있어서 생략가능
+    @JsonIgnore
+    private User user;
 }
 
