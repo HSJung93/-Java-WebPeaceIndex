@@ -5,7 +5,9 @@
 (https://www.youtube.com/watch?v=FYkn9KOfkx0&list=PLPtc9qD1979DG675XufGs0-gBeb2mrona)
 
 ### 평화지수란?
-
+![image01](https://user-images.githubusercontent.com/50201956/128863840-92bd9aa7-d1dd-42c8-97b9-b528e3779cec.png)
+![image02](https://user-images.githubusercontent.com/50201956/128863872-be0189ce-b5e4-41bb-a1a0-08db472d3fe2.png)
+![image03](https://user-images.githubusercontent.com/50201956/128863881-27db5334-115d-4544-bb9a-5eb084a2632b.png)
 
 ## 환경 및 세팅
 * openjdk version "1.8.0_302"
