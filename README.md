@@ -35,7 +35,7 @@
 * 각 패키지 별로 각 기능에 필요한 코드들에 대한 설명을 덧붙였습니다.
 * 패키지와 구현된 기능들을 다음과 같습니다.
 ### 패키지: 1. 템플릿, 2. 컨트롤러, 3. 모델, 4. 레포지토리, 5. 서비스, 6. 밸리데이터, 7. 컨피그
-#### 기능: 1) 타임리프로 화면 작성, 2) 타임리프로 레이아웃 만들기, 3) JPA로 게시판 조회, 4) Form 전송하기, 5) 밸리데이션, 6) JPA로 API
+#### 기능: 1) 타임리프로 화면 작성, 2) 타임리프로 레이아웃 만들기, 3) JPA로 게시판 조회, 4) Form 전송하기, 5) 밸리데이션, 6) JPA로 API, 7) JPA로 페이지 처리 및 검색
 
 ### 1. 템플릿: `resources/templates/~`
 * Thymeleaf는 템플릿 엔진으로, resources/templates에 html 파일을 이용해 웹페이지를 만든다.
@@ -83,6 +83,24 @@
 #### 5) 밸리데이션: `board/form.html`
 * `th:classappend=${#fields.hasErrors('title')} ? 'is-invalid'` title과 관련된 이름으로 발생된 에러가 fields에 존재하는지 확인하고 is-invalid 속성 추가
 * `th:errors="*{title}"` title 관련 에러 관련된 태크 속성
+#### 7) JPA로 페이지 처리 및 검색
+* 전체 건수: `boards.getTotalElements()` 값을 타임리프에서는 `${boards.totalElements}`로 불러와서 사용한다.
+* `li` 태그의 속성으로 `th:each=`로 컨트롤러에서 작성한 페이지 변수값을 가져온다.
+* `i : ${#numbers.sequence(startPage, endPage)}`로 두 변수값으로 만든 시퀀스의 숫자 값 i를 정의한 후, `th:text=${i}`로 보여준다.
+* 페이지가 본인 페이지일 때 본인, 페이지가 처음일때 previous 끝일때 next를 클릭하지 못하도록한다.
+  * `th:classappend="${i == boards.pageable.pageNumber + 1} ? 'disabled'"`으로 조건부로 클래스 값을 추가해준다.
+    * 조건문을 만들 때, 컨트롤러의 `boards`에서는 `getPageable()`과 `getPageNumber()`로 가져올 수 있었던 값들을 사용한다.
+  * `i` 를 `boards.totalPages` 나 `1`로 바꾸어서 next와 previous 태그에 `disabled` 속성을 더해준다.
+* 페이지 이동 링크를 `th:href=`로 주되, 앞에서 컨트롤러에 파라매터로 준 `pageable` 변수의 입력 값을 `GetMapping("/list")` 에 전달한다. 
+  * 타임리프 문법에 따르면 `th:href=@{/boards/list(page=${boards.pageable.pageNumber - 1})}` 로 `()`안에 변수의 입력값을 준다.
+  * 이 때 현재 페이지를 만들 때 받아온 `boards.pageable.pageNumber`를 이용한다. 
+* 검색 기능 구현
+  * `"searchTable"`이라는 `for` 속성을 가진 `label` 태그와 `name` 속성을 가진 `input` 태그, `button`태그를 가진 form을 부트스트랩으로 부터 가져온다.
+  * `d-flex justify-content-end` 클래스로 우측 정렬을 한다.
+  * `btn-light`로 버튼 색깔을 바꾼다.
+  * form 태그에만 `method="GET"`, `th:action="@{/board/list}"`으로 지정해주면, form 태그 내부의 `name=searchText` 값을 파라매터로 전달한다.
+  * `th:value=${param.searchText}`로 url에 있는 파라매터 값을 보여줄 수 있다.
+  * `th:href=@{/boards/list(page=${boards.pageable.pageNumber - 1}, searchText=${param.searchText} )}`로 페이지를 이동해도 `searchText` 값을 전달하여 검색이 유지되도록 한다.
 
 ### 2. 컨트롤러: `java/~/controller/~`
 #### 1) 타임리프로 화면 작성: `HomeController`
@@ -116,8 +134,31 @@
   * `@AutoWired` 어노테이션을 선언하여 DI하고, boardValidator 선언한다.
   * `boardRepository.save` 전에 `boardValidator.validate` 메소드에 board와 bindingResult를 파라매터를 건내어 확인한다.
 #### 6) JPA로 API: `BoardApiController`
-* CRUD: `@PostMapping` `@GetMapping`, `@PutMapping, `@DeleteMapping`
-
+* `@RequestMapping("/api")`로 `BoardController`와 구분한다.
+* C: `@PostMapping`어노테이션과 `save();` 메소드를 사용한다.
+* R: `@GetMapping()`어노테이션과 `findAll();` `findById();` 메소드를 사용한다. 값이 없으면 에러가 발생하게 할 수도 있지만, `orElse(null)`로 null 값을 리턴하게 한다. 
+  * 제목(컨텐트)으로 검색하기 위해서는 `@RequestParam()`으로 title 파라매터를 추가한 뒤, 값이 전달이 되면 해당 값으로 찾아서 검색하도록 한다.
+  * `defaultValue = ""` 옵션으로 기본값을 정의할 수 있다.
+  * 검색을 위한 메소드는 `@Autowired private`으로 선언해 둔 `BoardRepository`에서 만든다.
+* U: `@PutMapping()`어노테이션을 사용하고 `findById();`로 확인한다. 
+  * 데이터베이스에 값이 존재하면 `board.setName(newBoard.getName());`로 데이터베이스 저장한다. 
+  * 존재하지 않으면 `orElseGet(()->{ newBoard.setId(id) })`로 id 지정 후 `save(newBoard)`로 저장한다.
+* D: `@DeleteMapping`어노테이션
+#### 7) JPA로 페이지 처리 및 검색
+* `@GetMapping("/list")`에서 `findAll()` 메소드 안에 `PageRequest.of(페이지_인덱스, 페이지_크기)`를 넣으면 `Page<Board>` 변수를 얻을 수 있다.
+* `boards.getTotalElement()` 메소드로 전체 개수 값을 가져온다.
+* 이런 하드 코딩 대신에 Request 파라매터로 `Pageable pageable`(springframework 패키지)을 받고, `findAll(pageable)`로 값을 지정한다.
+  * `@PageableDefault(size=2)`로 size에 대한 기본값을 지정해줄 수 있다.
+* `@GetMapping("/list")`에 `pageable` 파라매터를 추가 했으므로 `?page=1&size2` 등으로 url을 통하여 page 변수(와 파라매터)를 전달할 수 있다. 
+* list.html에 page 속성 전달
+  * `boards.getPageable().getPageNumber()`로 현재 페이지 값을 가져온다.
+  * `model.addAttribute("startPage", startPage)`로 startPage변수를 넣고 같은 방법으로 endPage 변수도 넣는다.
+    * `Math.max`과 `Math.min`을 사용하여, 1과 `boards.getTotalPages()` 사이의 startPage와 endPage를 구한다.
+* 검색 기능 구현
+  * `@GetMapping("/list")` list.html로부터 받아온 `String searchText`를 파라매터로 준다. 이 파라매터로 검색하는 기능을 `BoardRepository`에서 구현한다.
+  * 구현한 `findByTitleContainingOrContentContaining();`를 바탕으로 값을 boards에 넣는다.
+  * `@RequestParam(required=false, defaultValue="")`로 값이 입력되지 않았을 때에도 작동하도록 한다.
+ 
 ### 3. 모델: `java/~/model/~` 
 #### 3) JPA로 게시판 조회: `Board`
 * Board 클래스에서 데이터베이스에서 정의해둔 필드들을 `private`으로 클래스의 멤버 변수로 정의한다. 
@@ -128,14 +169,21 @@
 #### 5) 밸리데이션: `Board`
 * `@NotNull` `@Size` 어노테이션으로 form에서 들어오는 값을 확인한다.
 * `@Size`에 최대 최소 길이, 오류 시 출력한 메세지를 지정할 수 있다.
+#### 6) JPA로 API: `Board`
+* Board 클래스를 그대로 사용한다.
 
 ### 4. 레포지토리: `java/~/repository/~`
 #### 3) JPA로 게시판 조회: `BoardRepository`
 * `BoardRepository`: `JpaRepository<Board, Long>`를 상속받아서 레포지토리를 만든다. 앞서 생성한 `Board` 모델 클래스를 불러와준다.
 * 메소드들의 이름을 규칙에 따라서 필드명을 포함시켜 만들면, 인터페이스를 구현할 필요없이 데이터를 가져올 수 있다.
 * 컨트롤러에서 레포지토리로 만든 Board 모델의 리스트를 속성에 넣어줄 수 있다. 
-#### 6) JPA로 API:
-* 이미 만들어둔 `BoardRepository`를 사용한다.
+#### 6) JPA로 API: `BoardRepository`
+* 제목으로 검색을 하기 위한 메소드는 `List<Board> findBy필드명`으로 인터페이스만 정의하면 알아서 구현해준다.
+* `findById필드명Or필드명`이나 `findById필드명And필드명`으로 여러 조건으로 검색하는 메소드를 구현할 수 있다. Spring Data JPA의 Query Creation 참고하면 된다.
+* `@Query(value="", nativeQuery=true)`로 커스텀 메소드를 만들 수 있다.
+#### 7) JPA로 페이지 처리 및 검색
+* 검색 기능 구현
+  * `Page<Board> findByTitleContainingOrContentContaining(String title, String content, Pageable pageable);`로 title과 content를 가진 데이터를 검색하여 pageable에 넣는 메소드를 구현한다.
 
 ### 5. 서비스: `java/~/service/~`
 
