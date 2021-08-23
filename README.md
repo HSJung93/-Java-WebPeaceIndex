@@ -35,7 +35,7 @@
 * 각 패키지 별로 각 기능에 필요한 코드들에 대한 설명을 덧붙였습니다.
 * 패키지와 구현된 기능들을 다음과 같습니다.
 ### 패키지: 1. 템플릿, 2. 컨트롤러, 3. 모델, 4. 레포지토리, 5. 서비스, 6. 밸리데이터, 7. 컨피그
-#### 기능: 1) 타임리프로 화면 작성, 2) 타임리프로 레이아웃 만들기, 3) JPA로 게시판 조회, 4) Form 전송하기, 5) 밸리데이션, 6) JPA로 API, 7) JPA로 페이지 처리 및 검색
+#### 기능: 1) 타임리프로 화면 작성, 2) 타임리프로 레이아웃 만들기, 3) JPA로 게시판 조회, 4) Form 전송하기, 5) 밸리데이션, 6) JPA로 API, 7) JPA로 페이지 처리 및 검색, 8) Spring Security로 로그인 처리
 
 ### 1. 템플릿: `resources/templates/~`
 * Thymeleaf는 템플릿 엔진으로, resources/templates에 html 파일을 이용해 웹페이지를 만든다.
@@ -101,6 +101,34 @@
   * form 태그에만 `method="GET"`, `th:action="@{/board/list}"`으로 지정해주면, form 태그 내부의 `name=searchText` 값을 파라매터로 전달한다.
   * `th:value=${param.searchText}`로 url에 있는 파라매터 값을 보여줄 수 있다.
   * `th:href=@{/boards/list(page=${boards.pageable.pageNumber - 1}, searchText=${param.searchText} )}`로 페이지를 이동해도 `searchText` 값을 전달하여 검색이 유지되도록 한다.
+#### 8) Spring Security로 로그인 처리: `/fragments/common.html`, `/account/login.html`, ``/account/register.html``
+* `common.html`
+  * css 파일의 주소를 `th:href="@{/css/starter-template.css}`로 수정한다.
+  * a 태그와 button 클래스를 이용한 Login 버튼을 추가한다. 
+    * `th:href="@{/account/login}"`
+    * `sec:authorize="!isAuthenticated()"`로 로그인 되지 않은 사람에게만 보여준다.
+  * button 태그를 이용한 Logout 버튼을 추가한다.
+    * `class="text-white mx-2"` 로 흰색 글씨와 x방향 2의 마진을 준다.
+    * `sec:authorize="isAuthenticated()"`로 로그인된 사람에게만 보여준다.
+    * 사용자와 권한 span에 `sec:authentication`을 추가하여 해당 항목을 표시해준다.
+    * `th:action="@{/logout}" method ="POST"`로 포스트 요청을 보내서 로그아웃이 되도록 한다.
+  * 메이븐에 타임리프의 SpringSecurityIntegrationModule을 추가한뒤 html 속성에 주소를 달아 sec 네임스페이스를 사용한다. 
+  * Login 버튼 뿐 아니라 회원가입 버튼도 추가한다.
+* `login.html`
+  * `index.html`를 복사한 뒤, 헤드와 바디를 부트스트랩 소스를 가져와 수정한다.
+  * body에는 `class="text-center"` 속성을 추가한다.
+  * signin.css를 추가한뒤, `th:href="@{/css/signin.css}`를 지정해준다.
+  * img의 이미지 주소를 부트스트랩 원본 소스 파일을 바탕으로 수정해준다.
+  * label의 email을 username으로 수정하고, input의 type, id, placeholder 또한 text, username, Username으로 수정해준다. 
+  * 에러 메시지를 form 태그 위에 넣는다. 
+    * `class = "alert alert-primary"`와 `role="alert"`를 추가한다.
+  * form 태그의 `th:action="{@/account/login}"`과 `method="post"`으로 타임리프 속성을 이용하여 csrf 토큰도 같이 전달해준다. 
+  * input 속성으로 name을 추가하여 컨트롤러에서 사용할 수 있도록 한다.
+  * div의 `th:if="${param.error}"`와  `th:if="${param.logout}"`으로 해당 요청 시 보여줄 요소를 지정한다.
+  * 이미지에 홈에 돌아오는 앵커 태그를 추가한다.
+* `register.html`
+  * `login.html`를 복사한 뒤, Sign in을 회원가입으로 포스트 요청을 보낼 곳을 `account/register`로 수정한다.
+  * 이미지에 홈에 돌아오는 앵커 태그를 추가한다.
 
 ### 2. 컨트롤러: `java/~/controller/~`
 #### 1) 타임리프로 화면 작성: `HomeController`
@@ -158,7 +186,15 @@
   * `@GetMapping("/list")` list.html로부터 받아온 `String searchText`를 파라매터로 준다. 이 파라매터로 검색하는 기능을 `BoardRepository`에서 구현한다.
   * 구현한 `findByTitleContainingOrContentContaining();`를 바탕으로 값을 boards에 넣는다.
   * `@RequestParam(required=false, defaultValue="")`로 값이 입력되지 않았을 때에도 작동하도록 한다.
- 
+#### 8) Spring Security로 로그인 처리 `AccountController`
+* `AccountController`에는 `@RequestMappin("/account")`, `login()` 에는 `@GetMapping("/login")`하고 `"/account/login"` 리턴.
+* `register`에는 `@PostMappin(/register)`로 폼을 받을 것인데, 
+  * 그 이전에 user와 role을 받을 모델 클래스가 내부적으로 필요하다. -> User, Role 모델 클래스와 UserRepository를 구현한 후 User를 인자로 받는다.
+  * 암호화와 권한 관리 등의 서비스를 처리할 패키지가 필요하다. -> UserService를 `@AutoWired`로 선언한 후, userService의 save메소드로 user를 저장한다.
+  * 이 후 홈으로 돌려보내면 되므로 "redirect:/"를 리턴한다.
+  * User를 인자로 받고 있기 때문에 User 클래스에서 선언한 값 username 과 password 에 맞춰서 값을 받게 된다.
+* `@GetMapping("/register")` 도 하나 추가한다. 
+  * "/account/register"를 리턴한다.
 ### 3. 모델: `java/~/model/~` 
 #### 3) JPA로 게시판 조회: `Board`
 * Board 클래스에서 데이터베이스에서 정의해둔 필드들을 `private`으로 클래스의 멤버 변수로 정의한다. 
@@ -171,6 +207,19 @@
 * `@Size`에 최대 최소 길이, 오류 시 출력한 메세지를 지정할 수 있다.
 #### 6) JPA로 API: `Board`
 * Board 클래스를 그대로 사용한다.
+#### 8) Spring Security로 로그인 처리: `User`, `Role` 
+* `User`
+  * `Board`와 같이 `@Entity`와 `@Data` 어노테이션 처리를 해준 뒤, id 도 선언한다.
+  * user 테이블의 username, password, enabled를 선언한다.
+  * JPA를 이용하여 조인을 하여 ManyToMany 매핑을 한다. 
+    * `List<Role> roles`로 멤버변수를 선언한다. 이후 `UserRepository`로 불러온다.
+    * `@ManyToMany`어노테이션 말고도 `JoinTable`로 "user_role"에 연결될 두 컬럼명을 적어준다. 
+  * 사용자를 저장할때 권한까지 저장하는게 바람직하지 않아서 `cascade` 옵션은 주지 않는다.
+  * 서비스를 구현한 뒤, `roles`를 선언할 때, null 예외처리를 피하기 위해 `ArrayList`로 선언해준다.
+* `Role`
+  * `User`를 복사해서 만들되 이번에는 name을 선언한다.
+  * `List<User> users`를 가져올 때 `@ManyToMany(mappedBy="roles")` 로 유저 클래스에서 이미 설정해둔 컬럼명인 roles를 지정하여 같은 설정에 맞게 동일하게 가져오도록 양방향 매핑을 한다. 
+
 
 ### 4. 레포지토리: `java/~/repository/~`
 #### 3) JPA로 게시판 조회: `BoardRepository`
@@ -184,8 +233,23 @@
 #### 7) JPA로 페이지 처리 및 검색
 * 검색 기능 구현
   * `Page<Board> findByTitleContainingOrContentContaining(String title, String content, Pageable pageable);`로 title과 content를 가진 데이터를 검색하여 pageable에 넣는 메소드를 구현한다.
+#### 8) Spring Security로 로그인 처리: `UserRepository`
+* 빈 UserRepository를 설정한 뒤, AccountController의 register에서 이용한다.
+
 
 ### 5. 서비스: `java/~/service/~`
+#### 8) Spring Security로 로그인 처리: `UserService`
+* `@Service` 어노테이션으로 비즈니스 로직을 구현하고, 테스트를 구현하기도 용이하다.
+* AccountController에서 선언하여 사용하게 된다.
+* User를 인풋과 아웃풋으로 하는 save 메소드를 작성한다. 이때 `@AutoWired`로 UserRepository를 선언하고 `userRepository.save(user)`를 리턴한다.
+* 패스워드를 암호화한다.
+  * `WebSecurityConfig`에서 설언해둔 `PasswordEncoder`를 `@AutoWired`로 선언하여 사용한다.
+  * `user.getPassword()`로 가져온 패스워드를 `passwordEncoder.encode()`메소드로 암호화한다.
+  * 이 값을 `user.getPassword()`로 새롭게 저장해준다. 
+  * `user.setEnabled()`도 기본적으로 가입하면 true로 해준다.
+* 아이디와 패스워드 뿐만이 아니라 role 또한 저장한다.
+  * 어레이리스트 형태로 불러온 role를 저장하려고 하는데, 데이터베이스에서 또다시 불러오기 위하여 Repository를 또 만들기 보다는, id를 하드코딩을 해서 데이터베이스에 만들어둔 role 값을 불러와서 넣어준다.
+  * 그러면 user_role 테이블에 role 테이블 값이 저장된다.
 
 ### 6. 밸리데이터: `java/~/validator/~`
 #### 5) 밸리데이션: `BoardValidator`
@@ -196,6 +260,31 @@
   * DI를 위하여 `@Component`로 등록해준다. 
 
 ### 7. 컨피그: `java/~/config/~`
+#### 8) Spring Security로 로그인 처리 `WebSecurityConfig`
+* `WebSecurityConfigurerAdapter` 를 상속 받은 `WebSecurityConfig`에 `@Configuration` `@EnableWebSecurity` 어노테이션을 추가한다.
+  * `@Configuration` 어노테이션을 추가해주면 `userDetailsService()`에서 `@Bean` 어노테이션을 사용할 수 있다. 이제 다른 클래스에서 `@AutoWired` 어노테이션을 사용해서 이 메소드를 사용할 수 있다. 현 프로젝트에서는 마리아 DB에 만든 사용자 테이블에서 사용자를 조회해서 로그인 처리를 할 것이므로 `userDetailsService()`가 필요하지 않다.
+* `WebSecurityConfigurerAdapter`에서 이미 정의된 `configure()` 메소드에서는 `HttpSecurity`를 인자로 받아서 보안 설정을 해준다.
+  * `authorizeRequests()` 에서는
+    * `antMatcher("url").permitAll()`로 해당 url를 모든 사용자에게 열어둔다.
+      * `/static/css` 폴더 또한 추가를 해준다.
+      * `/account/register` 회원가입 페이지도 추가한다.
+    * `anyRequest().authenticated`로 다른 요청은 로그인을 해야 페이지를 볼수 있도록 한다.
+    * `and()`로 관련 설정을 끝낸다.
+  * `formLogin()`로 로그인 페이지를 설정해준다.
+    * `loginPage("/account/login")` 다른 페이지를 가면 자동으로 템플릿에 맞춘 로그인 페이지로 리다이렉트하도록 한다. 
+    * 로그인 되지 않은 사용자이므로 `permitAll()`을 해준다.
+  * `logout()` 도 유사하게 설정한다.
+* `configureGlobal`
+  * `AuthenticationManagerBuilder`를 인자로 받고 내부에서 설정을 하게 되면, 인스턴스를 받아서 스프링에서 인증처리를 해준다. 
+  * `private DataSource datasource`에 `@Autowired` 어노테이션을 통하여 인스턴스를 주입한다. application.properties에 정의된 데이터 소스를 사용하게 한다. 이 데이터 소스를 `jdbcAuthentication().dataSource()`에 전달하면 알아서 인증처리를 해준다.
+  * `userByUsernameQuery()`를 통하여 마리아 db의 user 테이블의 username, password, enabled 순서대로 값을 가져온다.
+  * 스트링에 여백을 두어야 쿼리에서 오류가 나지 않으며, ?에는 값을 넣어준다. 
+  * `authoritiesByUsernameQuery`에서는 마리아 db의 role 테이블을 통하여 권한 처리를 위해 필요한 쿼리를 작성한다. 
+    * role과 user를 연결하는 user_role 테이블을 만든 후, user_role.user_id와 user.id를 inner join 해준다. 
+    * user_role.role_id와 role.id또한 inner join 해준다.
+* `PasswordEncoder`를 통하여 비밀번호를 안전하게 암호화하는 기능을 스프링에서 제공해주고 있다.
+  * 이 인스턴스 또한 `jdbcAuthentication()`에 `passwordEncoder()`에 넣어주면 이 인코더를 통하여 암호처리를 해준다.
+* Authentication은 인증으로 로그인 관련된 처리, Authorization은 로그인 이후에 권한 처리를 의미한다.  
 
 
 [coding-god]: https://www.youtube.com/watch?v=FYkn9KOfkx0&list=PLPtc9qD1979DG675XufGs0-gBeb2mrona
