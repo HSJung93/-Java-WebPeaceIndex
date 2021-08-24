@@ -35,7 +35,7 @@
 * 각 패키지 별로 각 기능에 필요한 코드들에 대한 설명을 덧붙였습니다.
 * 패키지와 구현된 기능들을 다음과 같습니다.
 ### 패키지: 1. 템플릿, 2. 컨트롤러, 3. 모델, 4. 레포지토리, 5. 서비스, 6. 밸리데이터, 7. 컨피그
-#### 기능: 1) 타임리프로 화면 작성, 2) 타임리프로 레이아웃 만들기, 3) JPA로 게시판 조회, 4) Form 전송하기, 5) 밸리데이션, 6) JPA로 API, 7) JPA로 페이지 처리 및 검색, 8) Spring Security로 로그인 처리, 9) JPA로 @OneToMany 관계 설정하기, 10) JPA로 FetchType 설정하기, 11) 권한에 맞는 화면 구성 및 API 호출
+#### 기능: 1) 타임리프로 화면 작성, 2) 타임리프로 레이아웃 만들기, 3) JPA로 게시판 조회, 4) Form 전송하기, 5) 밸리데이션, 6) JPA로 API, 7) JPA로 페이지 처리 및 검색, 8) Spring Security로 로그인 처리, 9) JPA로 @OneToMany 관계 설정하기, 10) JPA로 FetchType 설정하기, 11) 권한에 맞는 화면 구성 및 API 호출, 12) JPA 이용한 커스텀 쿼리 만들기
 
 ### 1. 템플릿: `resources/templates/~`
 * Thymeleaf는 템플릿 엔진으로, resources/templates에 html 파일을 이용해 웹페이지를 만든다.
@@ -276,6 +276,9 @@
   * `@OneToOne`과 `@ManyToOne` 기본값이 EAGAR이며, `@OneToMany`와 `@ManyToMany`의 기본값은 LAZY이다. 자동으로 불러와야할 컬럼이 하나인지 여러개 인지에 따라서 성능상의 부하를 고려한 기본값이다. 
   * api 테스트를 위하여 roles는 `@JsonIgnore`로 데이터가 표시되지 않도록 한다. 
   * LAZY로 설정하고 `UserApiController`의 `all()` 메소드를 사용하면 모든 보드(N)에 유저(1)까지 호출을 하는 N+1 문제가 발생하지 않는다. 
+#### 12) JPA 이용한 커스텀 쿼리 만들기: `User`
+* `@Query("select u from User u where u.username like %?1%")`를 통하여 앞뒤(%)로 첫번째 변수(?1)가 있는 데이터를 찾는 메소드를 구현한다.
+  * 외부에서 `findByUsernameQuery` 메소드를 호출하면 쿼리에 담긴 jpql이 sql로 바뀌어서 호출 된다.
 
 
 ### 4. 레포지토리: `java/~/repository/~`
