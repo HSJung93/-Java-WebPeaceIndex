@@ -35,7 +35,7 @@
 * 각 패키지 별로 각 기능에 필요한 코드들에 대한 설명을 덧붙였습니다.
 * 패키지와 구현된 기능들을 다음과 같습니다.
 ### 패키지: 1. 템플릿, 2. 컨트롤러, 3. 모델, 4. 레포지토리, 5. 서비스, 6. 밸리데이터, 7. 컨피그
-#### 기능: 1) 타임리프로 화면 작성, 2) 타임리프로 레이아웃 만들기, 3) JPA로 게시판 조회, 4) Form 전송하기, 5) 밸리데이션, 6) JPA로 API, 7) JPA로 페이지 처리 및 검색, 8) Spring Security로 로그인 처리, 9) JPA로 @OneToMany 관계 설정하기, 10) JPA로 FetchType 설정하기
+#### 기능: 1) 타임리프로 화면 작성, 2) 타임리프로 레이아웃 만들기, 3) JPA로 게시판 조회, 4) Form 전송하기, 5) 밸리데이션, 6) JPA로 API, 7) JPA로 페이지 처리 및 검색, 8) Spring Security로 로그인 처리, 9) JPA로 @OneToMany 관계 설정하기, 10) JPA로 FetchType 설정하기, 11) 권한에 맞는 화면 구성 및 API 호출
 
 ### 1. 템플릿: `resources/templates/~`
 * Thymeleaf는 템플릿 엔진으로, resources/templates에 html 파일을 이용해 웹페이지를 만든다.
@@ -133,6 +133,16 @@
 * `list.html`: 기존에는 직접 입력했던 사용자 이름을 `th:text="${board.user.username}"`으로 대체한다.
 * `form.html`: api를 사용하고 크롬을 통하여 디버깅을 해보면 hidden type 속성과 _csrf name 속성의 그리고 암호화된 키값의 value 속성을 가진 input이 존재한다. 스프링 시큐리티의 `th:action`에 csrf 옵션이 활성화되어 있는 것이다. `WebSecurityConfig`에서 수정가능하다.
 
+#### 11) 권한에 맞는 화면 구성 및 API 호출: `form.html`, `common.html`
+* ROLE_ADMIN만 삭제할 수 있도록 한다. 
+  * 삭제 버튼을 ROLE_ADMIN 에게만 표시되도록 한다: `sec:authorize="hasRole('ROLE_ADMIN')"`을 버튼의 속성에 더한다. 
+  * 삭제 기능은 자바스크립트 ajax로 구현한다.
+    * `th:onclick="|deleteBoard(*{id})|` 로 타임리프 문법에 맞게 id 변수를 deleteBoard 함수에 넣는다. 
+    * `$.ajax()` 의 url과 type를 입력하고, 성공시 콘솔 출력 함수를 만들어서 BoardApiController의 `@DeleteMapping("/boards/{id}")`를 호출한다.
+    * script의 src의 jqeury 버전을 slim에서 전체로 수정한다. 
+    * `window.location.href = "/board/list"`로 이동할 주소를 설정한다.
+  * 이 때 버튼만 가리면 postman등을 이용하여 사용자가 삭제할 수 있는 문제점이 있다. 따라서 서버에서 처리할 필요가 있다. 이를 위해 `MethodSecurityConfig`를 만들고 컨트롤러에 제약을 준다.
+* 자바스크립트 jquery를 불러오는 부분을 footer라고 이름 붙이고 common.html에만 남겨둔채, 다른 템플릿에서는 `th:replace="fragments/common :: footer`로 구현한다. 
 
 ### 2. 컨트롤러: `java/~/controller/~`
 #### 1) 타임리프로 화면 작성: `HomeController`
@@ -213,7 +223,12 @@
     * -> `user.getBoards().clear();` 이후 `user.getBoards().addAll(newUser.getBoards());`로 기존의 데이터를 삭제한 후 데이터를 새롭게 넣어주는 코드로 변경한다. 
   * 설정 후 user.getBoards()안의 board에 user 값을 넣어주면 마리아 DB에 정상적으로 저장이 된다. 
   * `all()` 메소드에서 LAZY 옵션을 확인하도록 Log.debug()를 사용한다. 로그를 보기 위하여 application.properties의 설정도 수정한다.
-  * 데이터를 따로 가져오는 LAZY 방식의 문제점은 UserRepository에서 해결한다. 
+  * 데이터를 따로 가져오는 LAZY 방식의 문제점은 UserRepository에서 해결한다.
+
+#### 11) 권한에 맞는 화면 구성 및 API 호출: `BoardApiController`
+* `form.html`의 자바스크립트 ajax에서 delete 매핑을 호출한다.
+* `MethodSecurityConfig`에서 호출한 `@Secured("ROLE_ADMIN")`으로 ROLE_ADMIN 사용자만 delete 매핑을 호출할 수 있도록 한다. 버튼을 누르면 403 에러가 나타난다. 
+
 
 ### 3. 모델: `java/~/model/~` 
 #### 3) JPA로 게시판 조회: `Board`
@@ -337,6 +352,9 @@
 #### 9) JPA로 @OneToMany 관계 설정하기: `WebSecurityConfig`
 * `.permitAll()`를 `antMatchers`에 더하여 api 테스트를 가능하게 한다. 
 * `.csrf.disable()`로 테스트를 가능하게 한다. 
+
+#### 11) 권한에 맞는 화면 구성 및 API 호출: `MethodSecurityConfig`
+* `GlobalMethodSecurityConfiguration`을 상속받고 사용할 방법을 `@EnableGlobalMethodSecurity`어노테이션 옵션으로 설정해준다. 이제 `BoardApiController`에서 `@Secured`어노테이션을 사용할 수 있다.
 
 
 [coding-god]: https://www.youtube.com/watch?v=FYkn9KOfkx0&list=PLPtc9qD1979DG675XufGs0-gBeb2mrona
