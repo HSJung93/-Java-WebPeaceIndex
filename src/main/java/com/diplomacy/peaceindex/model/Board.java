@@ -8,7 +8,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 // 이 클래스가 데이터베이스 연동을 위한 모델 클래스임을 알려준다.
-//게터, 세터? 우리는 롬북을 추가해놨다!
+// 롬복에서 간단한 어노테이션으로 게터와 세터를 만들 수 있다.
 // @OneToOne join 없는 관계라 간단한 설정이 가능한 경우(One X Many 4가지 경우 가능)
 @Entity
 @Data

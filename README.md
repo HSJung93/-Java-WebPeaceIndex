@@ -35,7 +35,7 @@
 * 각 패키지 별로 각 기능에 필요한 코드들에 대한 설명을 덧붙였습니다.
 * 패키지와 구현된 기능들을 다음과 같습니다.
 ### 패키지: 1. 템플릿, 2. 컨트롤러, 3. 모델, 4. 레포지토리, 5. 서비스, 6. 밸리데이터, 7. 컨피그
-#### 기능: 1) 타임리프로 화면 작성, 2) 타임리프로 레이아웃 만들기, 3) JPA로 게시판 조회, 4) Form 전송하기, 5) 밸리데이션, 6) JPA로 API, 7) JPA로 페이지 처리 및 검색, 8) Spring Security로 로그인 처리
+#### 기능: 1) 타임리프로 화면 작성, 2) 타임리프로 레이아웃 만들기, 3) JPA로 게시판 조회, 4) Form 전송하기, 5) 밸리데이션, 6) JPA로 API, 7) JPA로 페이지 처리 및 검색, 8) Spring Security로 로그인 처리, 9) JPA로 @OneToMany 관계 설정하기, 10) JPA로 FetchType 설정하기
 
 ### 1. 템플릿: `resources/templates/~`
 * Thymeleaf는 템플릿 엔진으로, resources/templates에 html 파일을 이용해 웹페이지를 만든다.
@@ -129,6 +129,10 @@
 * `register.html`
   * `login.html`를 복사한 뒤, Sign in을 회원가입으로 포스트 요청을 보낼 곳을 `account/register`로 수정한다.
   * 이미지에 홈에 돌아오는 앵커 태그를 추가한다.
+#### 9) JPA로 @OneToMany 관계 설정하기: `list.html`, `form.html`
+* `list.html`: 기존에는 직접 입력했던 사용자 이름을 `th:text="${board.user.username}"`으로 대체한다.
+* `form.html`: api를 사용하고 크롬을 통하여 디버깅을 해보면 hidden type 속성과 _csrf name 속성의 그리고 암호화된 키값의 value 속성을 가진 input이 존재한다. 스프링 시큐리티의 `th:action`에 csrf 옵션이 활성화되어 있는 것이다. `WebSecurityConfig`에서 수정가능하다.
+
 
 ### 2. 컨트롤러: `java/~/controller/~`
 #### 1) 타임리프로 화면 작성: `HomeController`
@@ -172,7 +176,7 @@
   * 데이터베이스에 값이 존재하면 `board.setName(newBoard.getName());`로 데이터베이스 저장한다. 
   * 존재하지 않으면 `orElseGet(()->{ newBoard.setId(id) })`로 id 지정 후 `save(newBoard)`로 저장한다.
 * D: `@DeleteMapping`어노테이션
-#### 7) JPA로 페이지 처리 및 검색
+#### 7) JPA로 페이지 처리 및 검색: `BoardController`
 * `@GetMapping("/list")`에서 `findAll()` 메소드 안에 `PageRequest.of(페이지_인덱스, 페이지_크기)`를 넣으면 `Page<Board>` 변수를 얻을 수 있다.
 * `boards.getTotalElement()` 메소드로 전체 개수 값을 가져온다.
 * 이런 하드 코딩 대신에 Request 파라매터로 `Pageable pageable`(springframework 패키지)을 받고, `findAll(pageable)`로 값을 지정한다.
@@ -186,7 +190,7 @@
   * `@GetMapping("/list")` list.html로부터 받아온 `String searchText`를 파라매터로 준다. 이 파라매터로 검색하는 기능을 `BoardRepository`에서 구현한다.
   * 구현한 `findByTitleContainingOrContentContaining();`를 바탕으로 값을 boards에 넣는다.
   * `@RequestParam(required=false, defaultValue="")`로 값이 입력되지 않았을 때에도 작동하도록 한다.
-#### 8) Spring Security로 로그인 처리 `AccountController`
+#### 8) Spring Security로 로그인 처리: `AccountController`
 * `AccountController`에는 `@RequestMappin("/account")`, `login()` 에는 `@GetMapping("/login")`하고 `"/account/login"` 리턴.
 * `register`에는 `@PostMappin(/register)`로 폼을 받을 것인데, 
   * 그 이전에 user와 role을 받을 모델 클래스가 내부적으로 필요하다. -> User, Role 모델 클래스와 UserRepository를 구현한 후 User를 인자로 받는다.
@@ -195,6 +199,22 @@
   * User를 인자로 받고 있기 때문에 User 클래스에서 선언한 값 username 과 password 에 맞춰서 값을 받게 된다.
 * `@GetMapping("/register")` 도 하나 추가한다. 
   * "/account/register"를 리턴한다.
+#### 9) JPA로 @OneToMany 관계 설정하기: `BoardController`, `UserApiController` 
+* `BoardController` 의 `@PostMapping("/form")`
+  * `board.setUser(user);`로 board에 유저값을 담으면 유저의 키값을 참조해서 user id값이 담길 것이지만 보안이 문제가 된다. 
+  * 스프링 시큐리티에서 제공하는 `Authentication`을 파라미터로 받고 `.getName()`을 통하여 username 값을 받아서 처리한다. 
+  * `BoardService`에 board와 username을 저장해 서비스에서 저장할 수 있도록 한다.
+* `UserApiController`
+  * `BoardApiController`를 복사한 뒤 리팩토링한다. 게시글을 검색하는 `all()` 메소드는 간단하게 `.findAll()`로 수정한다. 
+  * 기존 `@PutMapping("/users/{id}")`에서 새로운 값을 부여하는 `setTitle`와 `setContent`는 주석처리한다.
+  * `User` 클래스의 `@OneToMany` 매핑에서 사용한다.
+  * 매핑이 완료되었으므로 UserApiController로도 boards를 수정할 수 있다. 
+  * api 요청을 newUser로 받았으므로 `user.setBoards(newUser.getBoards());`로 값을 저장한다. 그런데 DB에 값이 저장되지 않는다. User 클래스의 boards에 추가적인 설정이 필요하다.
+    * -> `user.getBoards().clear();` 이후 `user.getBoards().addAll(newUser.getBoards());`로 기존의 데이터를 삭제한 후 데이터를 새롭게 넣어주는 코드로 변경한다. 
+  * 설정 후 user.getBoards()안의 board에 user 값을 넣어주면 마리아 DB에 정상적으로 저장이 된다. 
+  * `all()` 메소드에서 LAZY 옵션을 확인하도록 Log.debug()를 사용한다. 로그를 보기 위하여 application.properties의 설정도 수정한다.
+  * 데이터를 따로 가져오는 LAZY 방식의 문제점은 UserRepository에서 해결한다. 
+
 ### 3. 모델: `java/~/model/~` 
 #### 3) JPA로 게시판 조회: `Board`
 * Board 클래스에서 데이터베이스에서 정의해둔 필드들을 `private`으로 클래스의 멤버 변수로 정의한다. 
@@ -219,6 +239,28 @@
 * `Role`
   * `User`를 복사해서 만들되 이번에는 name을 선언한다.
   * `List<User> users`를 가져올 때 `@ManyToMany(mappedBy="roles")` 로 유저 클래스에서 이미 설정해둔 컬럼명인 roles를 지정하여 같은 설정에 맞게 동일하게 가져오도록 양방향 매핑을 한다. 
+#### 9) JPA로 @OneToMany 관계 설정하기: `Board`, `User`, `Role`
+* `Board`
+  * 기존에는 템플릿에서 사용자 이름을 입력했지만, 이제는 로그인하여 글을 쓴 사용자 정보를 표시하도록 한다.
+  * 먼저 Many의 입장인 보드 클래스에서 One의 입장인 유저 클래스를 가져오고 `@ManyToOne` 어노테이션을 해준다. 
+  * `JoinColumn()` 어노테이션으로 마리아 DB의 테이블들을 연결해준다. 이를 위하여 DB의 board 테이블에 user_id 컬럼을 추가하고 user 테이블의 id값과 외래키로 연결해준다. 이 user_id 키값을 이용해서 user의 사용자 이름을 가져오는 로직을 작성하게 된다. 
+    * `name = "user_id"`와 `referencedColumnName = "id"`로 마리아 DB의 테이블과 컬럼을 지정해줄 수 있다. 다만 id의 경우 User 클래스에서 `@Id` 어노테이션 지정을 해주었기 때문에 생략할 수 있다. 
+  * `@JsonIgnore`로 api 요청 시에 재귀적으로 users가 표시되지 않도록 한다.
+* `User`
+  * `@OneToMany` 어노테이션을 준 `List<Board>`를 가져온다.
+  * `mappedBy = "user"`로 Board 클래스의 변수명을 적어주면 user에 적어둔 `JoinColumn()` 설정을 그대로 사용할 수 있다. 
+  * `Board`와 `User`가 서로를 가지고 있어 서로를 조회할 수 있는 양방향 매핑이 성립되었다.
+    * 통상적으로 양방향 매핑의 경우 `@ManyToOne`에 키에 대한 설정을 적어둔다.
+  * `cascade = CascadeType.ALL`는 Hibernate의 ALL, REMOVE 등의 메소드를 지정해줄 수 있다. 
+    * 예를 들어 REMOVE 메소드를 사용하면, user값을 제거할 때 연쇄적으로 boards가 먼저 삭제가 되고 user가 삭제가된다.  
+  * `orphanRemoval = true`로 api로 데이터를 수정하면서 db에 저장된 기존의 user의 다른 데이터를 자동으로 삭제할 수 있다. 기본값이 false이다.
+* `Role`
+  * `@JsonIgnore`로 api 요청 시에 재귀적으로 users가 요청되지 않도록 한다. 
+#### 10) JPA로 FetchType 설정하기: `User`
+* `@OneToMany()`의 `fetch = FetchType.EAGAR` 옵션은 사용자 조회 시에 boards 클래스에 대한 데이터를 같이 가져올 지(EAGAR) 아니면, 나중에 필요할 때 가져올지(LAZY) 에 대한 설정이다. 
+  * `@OneToOne`과 `@ManyToOne` 기본값이 EAGAR이며, `@OneToMany`와 `@ManyToMany`의 기본값은 LAZY이다. 자동으로 불러와야할 컬럼이 하나인지 여러개 인지에 따라서 성능상의 부하를 고려한 기본값이다. 
+  * api 테스트를 위하여 roles는 `@JsonIgnore`로 데이터가 표시되지 않도록 한다. 
+  * LAZY로 설정하고 `UserApiController`의 `all()` 메소드를 사용하면 모든 보드(N)에 유저(1)까지 호출을 하는 N+1 문제가 발생하지 않는다. 
 
 
 ### 4. 레포지토리: `java/~/repository/~`
@@ -230,11 +272,14 @@
 * 제목으로 검색을 하기 위한 메소드는 `List<Board> findBy필드명`으로 인터페이스만 정의하면 알아서 구현해준다.
 * `findById필드명Or필드명`이나 `findById필드명And필드명`으로 여러 조건으로 검색하는 메소드를 구현할 수 있다. Spring Data JPA의 Query Creation 참고하면 된다.
 * `@Query(value="", nativeQuery=true)`로 커스텀 메소드를 만들 수 있다.
-#### 7) JPA로 페이지 처리 및 검색
+#### 7) JPA로 페이지 처리 및 검색: `BoardRepository`
 * 검색 기능 구현
   * `Page<Board> findByTitleContainingOrContentContaining(String title, String content, Pageable pageable);`로 title과 content를 가진 데이터를 검색하여 pageable에 넣는 메소드를 구현한다.
 #### 8) Spring Security로 로그인 처리: `UserRepository`
 * 빈 UserRepository를 설정한 뒤, AccountController의 register에서 이용한다.
+#### 9) JPA로 @OneToMany 관계 설정하기: `UserRepository`
+* `findByUsername`로 username이라는 컬럼에서 데이터를 찾아오도록 한다.
+* 새롭게 `findAll();` 메소드 명을 만든다. `@EntityGraph(attributePaths = { "boards" })`로 LAZY 옵션을 준 boards를 입력하면, FetchType을 무시하고 join방식으로 데이터를 한꺼번에 불러와서 해결한다. N+1의 쿼리가 만들어져 성능 상의 문제가 일어날 경우 이렇게 join 방식으로 쿼리를 짜주는 `@EntityGraph` 어노테이션으로 해결할 수 있다. 
 
 
 ### 5. 서비스: `java/~/service/~`
@@ -250,6 +295,10 @@
 * 아이디와 패스워드 뿐만이 아니라 role 또한 저장한다.
   * 어레이리스트 형태로 불러온 role를 저장하려고 하는데, 데이터베이스에서 또다시 불러오기 위하여 Repository를 또 만들기 보다는, id를 하드코딩을 해서 데이터베이스에 만들어둔 role 값을 불러와서 넣어준다.
   * 그러면 user_role 테이블에 role 테이블 값이 저장된다.
+#### 9) JPA로 @OneToMany 관계 설정하기: `BoardService`
+* `boardRepository`를 선언하고 save 메소드를 만들면 `BoardController`의 `@PostMapping`에서 `save(username, board);`를 사용할 수 있다.
+* 컨트롤러에서 보내준 username과 board를 바탕으로, 레포지토리에서 정의한 `findByUsername` 메소드를 사용하여 user 클래스를 받는다.
+* 이를 board 안에 user에 세팅한 후 `boardRepository`에 저장한 값을 리턴한다. 
 
 ### 6. 밸리데이터: `java/~/validator/~`
 #### 5) 밸리데이션: `BoardValidator`
@@ -260,7 +309,7 @@
   * DI를 위하여 `@Component`로 등록해준다. 
 
 ### 7. 컨피그: `java/~/config/~`
-#### 8) Spring Security로 로그인 처리 `WebSecurityConfig`
+#### 8) Spring Security로 로그인 처리: `WebSecurityConfig`
 * `WebSecurityConfigurerAdapter` 를 상속 받은 `WebSecurityConfig`에 `@Configuration` `@EnableWebSecurity` 어노테이션을 추가한다.
   * `@Configuration` 어노테이션을 추가해주면 `userDetailsService()`에서 `@Bean` 어노테이션을 사용할 수 있다. 이제 다른 클래스에서 `@AutoWired` 어노테이션을 사용해서 이 메소드를 사용할 수 있다. 현 프로젝트에서는 마리아 DB에 만든 사용자 테이블에서 사용자를 조회해서 로그인 처리를 할 것이므로 `userDetailsService()`가 필요하지 않다.
 * `WebSecurityConfigurerAdapter`에서 이미 정의된 `configure()` 메소드에서는 `HttpSecurity`를 인자로 받아서 보안 설정을 해준다.
@@ -285,6 +334,9 @@
 * `PasswordEncoder`를 통하여 비밀번호를 안전하게 암호화하는 기능을 스프링에서 제공해주고 있다.
   * 이 인스턴스 또한 `jdbcAuthentication()`에 `passwordEncoder()`에 넣어주면 이 인코더를 통하여 암호처리를 해준다.
 * Authentication은 인증으로 로그인 관련된 처리, Authorization은 로그인 이후에 권한 처리를 의미한다.  
+#### 9) JPA로 @OneToMany 관계 설정하기: `WebSecurityConfig`
+* `.permitAll()`를 `antMatchers`에 더하여 api 테스트를 가능하게 한다. 
+* `.csrf.disable()`로 테스트를 가능하게 한다. 
 
 
 [coding-god]: https://www.youtube.com/watch?v=FYkn9KOfkx0&list=PLPtc9qD1979DG675XufGs0-gBeb2mrona
