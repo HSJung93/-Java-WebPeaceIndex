@@ -4,6 +4,7 @@ import com.diplomacy.peaceindex.model.Board;
 import com.diplomacy.peaceindex.model.User;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
@@ -12,4 +13,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAll();
 
     User findByUsername(String username); // findBy{Columnname}만 하면 알아서...
+
+    @Query("select u from User u where u.firstname like %?1")
+    List<User> findByFirstnameEndsWith(String firstname);
 }
