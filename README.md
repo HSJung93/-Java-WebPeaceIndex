@@ -227,8 +227,20 @@
 
 #### 11) 권한에 맞는 화면 구성 및 API 호출: `BoardApiController`
 * `form.html`의 자바스크립트 ajax에서 delete 매핑을 호출한다.
-* `MethodSecurityConfig`에서 호출한 `@Secured("ROLE_ADMIN")`으로 ROLE_ADMIN 사용자만 delete 매핑을 호출할 수 있도록 한다. 버튼을 누르면 403 에러가 나타난다. 
-
+* `MethodSecurityConfig`에서 호출한 `@Secured("ROLE_ADMIN")`으로 ROLE_ADMIN 사용자만 delete 매핑을 호출할 수 있도록 한다. 버튼을 누르면 403 에러가 나타난다.
+#### 12) JPA 이용한 커스텀 쿼리 만들기: `UserApiController`
+* `@GetMapping("/users")`에 if 문으로 4가지 커스텀 쿼리의 방법을 시험한다.
+  * 어떤 커스텀 쿼리 방식인지를 알려주는 `String method`와 쿼리에 넣을 검색어인 `String text`를 `@RequestParam(required=true)`로 넣는다.
+* Query 어노테이션을 이용한 JPQL 작성
+  * 레포지토리의 `findByUsernameQuery` 메소드를 사용한다.
+* Query 어노테이션을 이용한 SQL 작성
+  * 레포지토리의 `findByUsernameNativeQuery` 메소드를 사용한다.
+* Querydsl을 이용한 쿼리작성
+  * Querydsl 패키지의 `Predicate` 자료형을 import하여 사용한다. predicate 변수를 `findAll();` 에 넘겨주면 조건문이 수행된다.
+  * `endsWith`, `contains`, `eq` 등의 자바의 조건문을 충첩적으로 사용할 수 있다. 
+  * QUser로 테이블 데이터를 사용할 수 있다. 메이븐 컴파일 시 모델에서 지정한 엔티티 클래스들이 `target/generated-sources/java` 폴더에 자동으로 생성되고 소스에서 사용할 수 있다.
+  * 단 리턴 타입이 `Iterable<User>`로 바뀌기 때문에 메소드의 리턴값을 수정해준다.
+* 커스텀 레포지토리를 이용한 쿼리작성
 
 ### 3. 모델: `java/~/model/~` 
 #### 3) JPA로 게시판 조회: `Board`
@@ -277,8 +289,7 @@
   * api 테스트를 위하여 roles는 `@JsonIgnore`로 데이터가 표시되지 않도록 한다. 
   * LAZY로 설정하고 `UserApiController`의 `all()` 메소드를 사용하면 모든 보드(N)에 유저(1)까지 호출을 하는 N+1 문제가 발생하지 않는다. 
 #### 12) JPA 이용한 커스텀 쿼리 만들기: `User`
-* `@Query("select u from User u where u.username like %?1%")`를 통하여 앞뒤(%)로 첫번째 변수(?1)가 있는 데이터를 찾는 메소드를 구현한다.
-  * 외부에서 `findByUsernameQuery` 메소드를 호출하면 쿼리에 담긴 jpql이 sql로 바뀌어서 호출 된다.
+* 외부 api 테스트를 위하여 List<Boards>에 `@JsonIgnore` 어노테이션을 더한다.
 
 
 ### 4. 레포지토리: `java/~/repository/~`
@@ -298,7 +309,28 @@
 #### 9) JPA로 @OneToMany 관계 설정하기: `UserRepository`
 * `findByUsername`로 username이라는 컬럼에서 데이터를 찾아오도록 한다.
 * 새롭게 `findAll();` 메소드 명을 만든다. `@EntityGraph(attributePaths = { "boards" })`로 LAZY 옵션을 준 boards를 입력하면, FetchType을 무시하고 join방식으로 데이터를 한꺼번에 불러와서 해결한다. N+1의 쿼리가 만들어져 성능 상의 문제가 일어날 경우 이렇게 join 방식으로 쿼리를 짜주는 `@EntityGraph` 어노테이션으로 해결할 수 있다. 
-
+#### 12) JPA 이용한 커스텀 쿼리 만들기: `UserRepository`, `CustomizedUserRepository`, `CustomizedUserRepositoryImpl`
+* Query 어노테이션을 이용한 JPQL 작성
+  * `@Query("select u from User u where u.username like %?1%")`를 통하여 앞뒤(%)로 첫번째 변수(?1)가 있는 데이터를 찾는 메소드를 구현한다.
+  * 외부에서 `findByUsernameQuery` 메소드를 호출하면 쿼리에 담긴 jpql이 sql로 바뀌어서 호출 된다.
+* Query 어노테이션을 이용한 SQL 작성
+  * `@Query("select * from User u where u.username like %?1%", nativeQuery=true)`로 SQL 문으로 호출할 수 있다(u가 *로 바뀌었다).
+  * 외부에서 `findByUsernameNativeQuery` 메소드를 호출한다.
+* Querydsl을 이용한 쿼리작성
+  * `QueryPredicateExecutor<Users>`를 `UserRepository`에 상속받는다. 
+* 커스텀 레포지토리를 이용한 쿼리작성: `CustomizedUserRepository`, `CustomizedUserRepositoryImpl`
+  * `CustomizedUserRepository` 인터페이스를 만든다. 그 안에 `findByUsernameCustom`를 구현한다.
+  * `CustomizedUserRepositoryImpl` 클래스를 구현한다. `CustomizedUserRepository`를 상속받고 `findByUsernameCustom`를 `@Override`한다.
+    * 이안에 커스텀 쿼리를 작성하면 되는데 spring-data-example의 깃허브의 jpa 폴더를 참고한다.
+    * `EntitiyManager em`에 `@PersistenceContext`로 어노테이션하여 사용한다.
+    * `JPAQuery<>`를 임포트하고 em을 사용하면 `.from`, `.where`, `.fetch`등을 사용할 수 있다.
+    * QUser를 인풋으로 준다.
+  * `CustomizedUserRepository`를 `UserRepository`에 상속받는다.
+* jdbcTemplate을 이용한 쿼리 작성
+  * `CustomizedUserRepository`에 `findByUsernameJdbc`를 구현한다.
+  * `CustomizedUserRepositoryImpl` 클래스에 `findByUsernameJdbc`를 `@Override`한다.
+  * 핵심은 `BeanPropertyRowMapper(User.class)`로 가져오는 것이다.\
+  * `jdbcTemplate.query("SELECT * FROM USER WHERE username like ?", new Object[]{"%" + username + "%"}, new BeanPropertyRowMapper(User.class))`를 인풋으로 줘서 List<User>를 리턴한다.
 
 ### 5. 서비스: `java/~/service/~`
 #### 8) Spring Security로 로그인 처리: `UserService`
