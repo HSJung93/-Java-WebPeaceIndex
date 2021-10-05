@@ -32,7 +32,7 @@
 * `java/~/PeaceindexApplication.java`
 * src/main/java/com.diplomacy.peaceindex/PeaceindexApplication.java를 실행시키시면 됩니다.
 
-## 웹 어플리케이션에 대한 간략한 설명
+## 웹 어플리케이션에 대한 자세한 설명
 * 이하에서는 구현된 패키지 별로 각 기능에 필요한 코드들에 대한 설명을 덧붙였습니다.
 * 구현된 패키지와 기능들
   * 패키지
