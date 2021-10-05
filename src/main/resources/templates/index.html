@@ -1,4 +1,6 @@
+<!--메인 화면-->
 <!doctype html>
+<!--타임리프를 사용하기 위해 다음과 같이 html 태그에 속성을 추가한다-->
 <html xmlns:th="http://www.thymeleaf.org">
 
 <head th:replace="fragments/common :: head('Hello, Spring Boot!')">
@@ -15,6 +17,7 @@
 </head>
 
 <body>
+    <!-- th:replace 속성으로 fragments/common.html의 menu 속성을 가진 태그를 찾아 현재 태그를 대체한다. 주석 처리된 부분만큼의 중복이 사라진다. -->
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top" th:replace="fragments/common :: menu('home')">
         <!-- <a class="navbar-brand" href="#">Spring Boot Tutorial</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault"

@@ -1,3 +1,4 @@
+<!--게시판 조회 화면-->
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 
@@ -45,6 +46,7 @@
                 </tr>
             </thead>
             <tbody>
+                <!--  boards의 각 값을 board 변수로 선언하여 받는다.    -->
                 <tr th:each="board : ${boards}">
                     <td th:text="${board.id}">Mark</td>
                     <td>

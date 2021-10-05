@@ -1,3 +1,4 @@
+<!--중복되는 부분을 대체하는 html-->
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
@@ -11,6 +12,7 @@
         integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
     <link href="starter-template.css" th:href="@{/css/starter-template.css}" rel="stylesheet">
 
+    <!-- th:text는 태그 내부 텍스트에 대한 속성이다. 모델 안의 title이라는 키 값으로 대체한다. -->
     <title th:text="${title}">평화 지수 프로젝트</title>
 </head>
 
@@ -24,13 +26,23 @@
 
         <div class="collapse navbar-collapse" id="navbarsExampleDefault">
             <ul class="navbar-nav mr-auto">
+                <!-- 모델 안 menu라는 키값의 값이 home이면, 태그의 class 속성에 active를 추가한다. -->
                 <li class="nav-item" th:classappend="${menu} == 'home'? 'active'">
-                    <a class="nav-link" href="#" th:href="@{/}">홈 <span class="sr-only"
-                            th:if="${menu} == 'home'">(current)</span></a>
+                    <!-- th:href로 링크를 /로 연결한다. -->
+                    <a class="nav-link" href="#" th:href="@{/}">홈
+                        <!-- 모델 안 menu라는 키값의 값이 home이면, current 지시자가 화면에 표시되도록 한다.           -->
+                        <span class="sr-only"
+                            th:if="${menu} == 'home'">(current)
+                        </span>
+                    </a>
                 </li>
                 <li class="nav-item" th:classappend="${menu} == 'board'? 'active'">
-                    <a class="nav-link" href="#" th:href="@{/board/list}">게시판 <span class="sr-only"
-                            th:if="${menu} == 'board'">(current)</span></a>
+                    <!-- th:href로 링크를 /board/list.html 로 연결한다. -->
+                    <a class="nav-link" href="#" th:href="@{/board/list}">게시판
+                        <span class="sr-only"
+                            th:if="${menu} == 'board'">(current)
+                        </span>
+                    </a>
                 </li>
                 <!-- <li class="nav-item">
                 <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a>

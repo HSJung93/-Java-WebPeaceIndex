@@ -63,12 +63,13 @@
 * `resources/templates/~`
 * Thymeleaf는 템플릿 엔진으로, resources/templates에 html 파일을 이용해 웹페이지를 만든다.
 * html파일의 html 태그에 `xmlns:th="http://www.thymeleaf.org"` 속성을 추가한다.
+
 #### 1) 타임리프로 화면 작성
 * `index.html`, `fragments/common.html`
 * `index.html`
   * `"th:replace="fragments/common :: menu('home')"` 속성은 fragments.common.html 에서 `th:fragment="menu"` 속성이 있는 태그를 찾아서 대체한다.
 * `fragments/common.html`
-  * `th:text="${name}"` `th:text`는 태그 내부 텍스트에 대한 속성이며 모델 안의 키값에 해당하는 `${key}`으로 모델의 해당 키의 밸류값을 받는다.
+  * `th:text="${name}"`: `th:text`는 태그 내부 텍스트에 대한 속성이며 모델 안의 키값에 해당하는 `${key}`으로 모델의 해당 키의 밸류값을 받는다. -> 추후 기능 추가하면서 name에서 title로 수정.
   * `th:classappend="${menu} == 'home'? 'active'"` menu의 밸류가 'home'이면 class에 active 속성을 추가한다.
 #### 2) 타임리프로 레이아웃 만들기
 * `board/list.html`, `fragments/common.html`
@@ -81,14 +82,15 @@
   * `th:href="@{/}`과 `th:href="@{/board/list}`로 링크를 연결해준다.
 #### 3) JPA로 게시판 조회
 * `board/list.html`
-* `th:text="${#lists.size(boards)}` 전달 받은 boards 변수(List)의 크기를 알려주는 size 문법을 사용한다.
-* `th:each="board : ${boards}"` boards 변수의 각 값을 boards로 변수로 선언하여 받는다.
+* `th:text="${#lists.size(boards)}` 전달 받은 boards 변수(List)의 크기를 알려주는 size 문법을 사용한다. -> 페이지 기능 추가하면서 boards 변수를 직접 받고 타임리프 문법에 맞춰 totalElements로 받는 것으로 수정.
+* `th:each="board : ${boards}"` boards 변수의 각 값을 board로 변수로 선언하여 받는다.
 #### 4) Form 전송하기:
 * `board/list.html` `board/form.html`
 * `board/form.html`
   * `list.html`를 이용하여 `form.html`를 생성한다. 부트스트랩의 `form` 예제를 사용한다.
   * `form.html`의 취소 버튼을 통하여 list.html로 돌아가는 기능 구현
-    * `<a type="button"></a>` 으로 쓰기 버튼을 만들 수 있다. `th:href="@{/board/form}"` 속성으로 list.html로 이동하도록 지정한다.
+    * `<a type="button"></a>` 으로 쓰기 버튼을 만들 수 있다. -> 추후에 삭제 취소 기능 구현하면서 `class="btn btn-primary"`의 버튼으로 수정
+    * `th:href="@{/board/form}"` 속성으로 list.html로 이동하도록 지정한다.
   * 글을 새롭게 생성하는 기능 구현:
     * `form.html`의 쓰기 버튼을 통하여 컨트롤러에 값들을 보내는 기능 구현
     * `th:action="@{/board/form}`과 `method=post` 으로 데이터를 `@PostMapping("/form")` 컨트롤러에 포스트 요청을 한다(보낸다).
