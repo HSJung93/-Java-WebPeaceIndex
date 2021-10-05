@@ -31,6 +31,7 @@
 ### 프로젝트 실행
 * `java/~/PeaceindexApplication.java`
 * src/main/java/com.diplomacy.peaceindex/PeaceindexApplication.java를 실행시키시면 됩니다.
+* **MariaDB id와 비밀번호, 포트 설정 정보를 담은 application.properties는 깃허브에 업로드 하지 않았으므로, 관련 처리가 별도로 필요합니다.**
 
 ## 웹 어플리케이션에 대한 자세한 설명
 * 이하에서는 구현된 패키지별로 각 기능에 필요한 코드들에 대한 설명을 덧붙였습니다.
@@ -114,6 +115,7 @@
 * `th:classappend=${#fields.hasErrors('title')} ? 'is-invalid'` title과 관련된 이름으로 발생된 에러가 fields에 존재하는지 확인하고 is-invalid 속성 추가
 * `th:errors="*{title}"` title 관련 에러 관련된 태크 속성
 #### 7) JPA로 페이지 처리 및 검색
+* `board/list.html`
 * 전체 건수: `boards.getTotalElements()` 값을 타임리프에서는 `${boards.totalElements}`로 불러와서 사용한다.
 * `li` 태그의 속성으로 `th:each=`로 컨트롤러에서 작성한 페이지 변수값을 가져온다.
 * `i : ${#numbers.sequence(startPage, endPage)}`로 두 변수값으로 만든 시퀀스의 숫자 값 i를 정의한 후, `th:text=${i}`로 보여준다.
@@ -164,6 +166,11 @@
 * `list.html`, `form.html`
 * `list.html`: 기존에는 직접 입력했던 사용자 이름을 `th:text="${board.user.username}"`으로 대체한다.
 * `form.html`: api를 사용하고 크롬을 통하여 디버깅을 해보면 hidden type 속성과 _csrf name 속성의 그리고 암호화된 키값의 value 속성을 가진 input이 존재한다. 스프링 시큐리티의 `th:action`에 csrf 옵션이 활성화되어 있는 것이다. `WebSecurityConfig`에서 수정가능하다.
+* CSRF(Cross-site Request Forgery): 사이트간 요청 위조
+  * 사용자가 자신의 의지와 무관하게 공격자가 의도한 행동을 하여 특정 웹페이지의 보안을 취약하게 하고 수정, 삭제 등의 작업을 하게 만드는 공격법
+  * 공격방법: 사용자 패스워드 변경 페이지나 타 시스템과의 로그인 연동 주소 패턴같은 인증 관련 취약점을 찾는다.
+    * XSS 공격: 사이트에 스크립트를 넣어서 삽입한 코드를 실행하게 하여, 쿠키-세션-토큰 정보 탈취 및 오작동 유도. 
+  * 방어방법: HTTP 헤더에 있는 정보인 Referer 체크. 세션에 임의난수 토큰 발급 등
 
 #### 11) 권한에 맞는 화면 구성 및 API 호출
 * `form.html`, `common.html`
@@ -193,7 +200,7 @@
 * `BoardController`
 * 게시판 호출을 위한 데이터 값을 넘겨 받기 위하여 파라매터로 `Model model`을 추가한다.
 * `BoardRepository`를 `private boardRepository`으로 선언하고 `@Autowired`로 DI한다.
-* 이후 list 메소드에서 `List<Boards> boards = boardRepository.findAll();` 로 데이터를 받고, `addAttribute("boards", boards);`로 "boards"를 키 값으로 `model`에 전달한다. 이제 모델에 담긴 데이터를 타임리프에서 사용할 수 있다.
+* list 메소드에서 `List<Boards> boards = boardRepository.findAll();` 로 데이터를 받고, `addAttribute("boards", boards);`로 "boards"를 키 값으로 `model`에 전달한다. 이제 모델에 담긴 데이터를 타임리프에서 사용할 수 있다. -> 페이지 기능 구현시 수정
 #### 4) Form 전송하기
 * `BoardController`
 * `@GetMapping("/form")`으로 `form.html`으로 연결한다.
@@ -206,6 +213,17 @@
   * JPA로 게시판을 조회할 때처럼 `BoardRepository`가 기본적으로 제공하는 메소드를 사용하는데 이번에는 `findAll();`이 아니라 `save(board)`로 전달받은 board 모델 클래스를 저장한다. 이때 id 값이 있느냐에 따라서 자동으로 INSERT 혹은 UPDATE를 해준다.
   * 완료 시 이동할 페이지는 list인데, `return "redirect:/board/list";`로 redirect 키워드를 주면 list로 리다이렉트가 되면서 화면이 이동된다.
     * 원래 `@GetMapping("/list")`컨트롤러에서는 모델에 전달할 키 값 `"boards"`가 있고 값을 뿌려줘야 했다. 하지만 `@PostMapping("/form")`에서는 값을 뿌려주지 않고 `"board/list"`로 바로 이동하면 되기 때문에 리다이렉트로 충분하다.
+* 페이지 전환 기능
+  * Forward: 
+    * 클라이언트가 url1에 request를 보내면, url1원 request 정보를 그대로 유지, url2로 forward 한다. url2에서 response를 보내지만 url2의 정보는 볼 수 없다. 
+    * 사용자가 최초로 요청한 요청정보가 다음 url 에서도 유효하다.
+    * 사용자가 실수로 글쓰기 CGI 응답에서 새로 고침을 누르면 요청정보가 살아 있어서 똑같은 글이 여러번 등록된다.
+    * 따라서 시스템(세션, DB)에 변화가 생기지 않는 단순 조회(리스트 보기, 검색)의 경우 사용한다.
+  * Redirect: 
+    * 클라이언트가 url1에 reqeust1을 보내면, url1은 redirect 응답을 하여 url2를 리턴하며 이동하라는 명령을 내린다. 
+    * 클라이언트는 새로운 request2를 url2에 보내고 응답을 받는다. 따라서 request1의 정보는 유효하지 않게 된다. 
+    * 처음 request1이 존재하지 않고, 글쓰기 기능을 하는 url1이 아니라 url2로 요청을 보내기 때문에 글쓰기가 여러번 수행되지 않는다.
+    * 시스템에 변화가 생기는 요청(로그인, 회원가입, 글쓰기)의 경우 적합하다.
 #### 5) 밸리데이션
 * `BoardController @PostMapping("/form")`
 * `@ModelAttribute`를 `@Valid`로 바꾸어 주고 BindingResult 클래스를 파라매터로 준다.
@@ -224,7 +242,7 @@
   * 검색을 위한 메소드는 `@Autowired private`으로 선언해 둔 `BoardRepository`에서 만든다.
 * U: `@PutMapping()`어노테이션을 사용하고 `findById();`로 확인한다.
   * 데이터베이스에 값이 존재하면 `board.setName(newBoard.getName());`로 데이터베이스 저장한다.
-  * 존재하지 않으면 `orElseGet(()->{ newBoard.setId(id) })`로 id 지정 후 `save(newBoard)`로 저장한다.
+  * 존재하지 않으면 `orElseGet(()->{ newBoard.setId(id) })`로 id 지정 후 `save(newBoard)`로 저장한다. -> 추후에 Title과 Content로 확장 및 수정
 * D: `@DeleteMapping`어노테이션
 #### 7) JPA로 페이지 처리 및 검색
 * `BoardController`
@@ -267,15 +285,38 @@
   * 설정 후 user.getBoards()안의 board에 user 값을 넣어주면 마리아 DB에 정상적으로 저장이 된다.
   * `all()` 메소드에서 LAZY 옵션을 확인하도록 Log.debug()를 사용한다. 로그를 보기 위하여 application.properties의 설정도 수정한다.
   * 데이터를 따로 가져오는 LAZY 방식의 문제점은 UserRepository에서 해결한다.
+* QueryDsl
+  * 데이터 조회는 fk의 조인, 복잡한 조건 등으로 인해 entity 클래스만으로는 처리하기 어려워 조회용 프레임워크를 추가로 사용한다.
+  * 장점: 메소드를 기반으로 쿼리를 생성하기 때문에 타입 안정성이 보장된다. 2. 레퍼런스가 많다.
 
 #### 11) 권한에 맞는 화면 구성 및 API 호출
 * `BoardApiController`
 * `form.html`의 자바스크립트 ajax에서 delete 매핑을 호출한다.
 * `MethodSecurityConfig`에서 호출한 `@Secured("ROLE_ADMIN")`으로 ROLE_ADMIN 사용자만 delete 매핑을 호출할 수 있도록 한다. 버튼을 누르면 403 에러가 나타난다.
 
+#### 12) JPA 이용한 커스텀 쿼리 만들기
+* `UserApiController`
+* Method 파라매터를 받고 이에 따라 Username을 검색하는 쿼리문을 작성한다. 
+  * "query": Spring Data JPA의 JPQL의 방식. `UserRepository`의 `.findByUsernameQuery` 메소드를 사용한다.
+  * "nativeQuery": SQL 쿼리 방식. `UserRepository`의 `.findByUsernameNativeQuery` 메소드를 사용한다. 
+  * "querydsl"
+    * Maven 세팅 이후, 레포지토리에 QuerydslPredicateExecutor<User> 인터페이스를 implements 후, Predicate 클래스와 QUser를 import 하여 사용.
+    * contains 메소드를 통한 like 검색.
+    * return 타입을 iterable로 수정해 users로 받는다.
+    * BooleanExpression을 이용한 조건문도 구현 가능하다. 
+    * `.findAll` 메소드를 사용한다. 
+  * "querydslCustom"
+    * `CustomizedUserRepository` 인터페이스와 Impl로 끝나는 구현체를 먼저 작성한다.
+    * `UserRepository`에 implements 한 뒤` CustomizedUserRepository`에 구현한 `findByUsernameCustom` 메소드를 사용한다.
+  * "jdbc"
+    * querydslCustom와 같게 `CustomizedUserRepository` 인터페이스와 구현체에 메소드를 작성한다.
+    * `findByUsernameJdbc` 메소드를 사용한다.
+
 
 ### 3. 모델
 * `java/~/model/~`
+* Entity: 데이터 테이블, column - 필드, row - Entity 객체로 대응된다.
+
 #### 3) JPA로 게시판 조회
 * `Board`
 * Board 클래스에서 데이터베이스에서 정의해둔 필드들을 `private`으로 클래스의 멤버 변수로 정의한다.
@@ -283,13 +324,16 @@
 * 데이터베이스 연동을 위한 모델 클래스임을 알려주기 위하여 `@Entity` 어노테이션을 추가한다. 컨트롤러에서 Model를 파라매터에서 불러오면 그 때 속성에 넣어줄 수 있다.
 * primary key인 id위에는 `Id` 어노테이션을 추가하고, 자동 증가를 위하여 `@GenerateValue(strategy=GenerationType.IDENTITY)` 를 선언한다.
 * `IDENTITY` 말고 `SEQUENCE`를 사용하면 성능이 보다 좋지만 추가 작업이 필요한다.
+
 #### 5) 밸리데이션
 * `Board`
 * `@NotNull` `@Size` 어노테이션으로 form에서 들어오는 값을 확인한다.
 * `@Size`에 최대 최소 길이, 오류 시 출력한 메세지를 지정할 수 있다.
+
 #### 6) JPA로 API
 * `Board`
-* Board 클래스를 그대로 사용한다.
+* Board 클래스를 그대로 사용하면 된다.
+
 #### 8) Spring Security로 로그인 처리
 * `User`, `Role`
 * `User`
@@ -331,6 +375,8 @@
 
 ### 4. 레포지토리
 * `java/~/repository/~`
+* 레포지토리: Entity에 의해 생성된 DB에 접근하는 메서드(ex) findAll()) 들을 사용하기 위한 인터페이스.
+* Entity를 선언함으로써 데이터베이스 구조를 만들었다면, 여기에 어떤 값을 넣거나, 넣어진 값을 조회하는 등의 CRUD(Create, Read, Update, Delete)를 해야 쓸모가 있는데, 이것을 어떻게 할 것인지 정의해주는 계층
 #### 3) JPA로 게시판 조회
 * `BoardRepository`
 * `BoardRepository`: `JpaRepository<Board, Long>`를 상속받아서 레포지토리를 만든다. 앞서 생성한 `Board` 모델 클래스를 불러와준다.
@@ -352,7 +398,34 @@
 * `UserRepository`
 * `findByUsername`로 username이라는 컬럼에서 데이터를 찾아오도록 한다.
 * 새롭게 `findAll();` 메소드 명을 만든다. `@EntityGraph(attributePaths = { "boards" })`로 LAZY 옵션을 준 boards를 입력하면, FetchType을 무시하고 join방식으로 데이터를 한꺼번에 불러와서 해결한다. N+1의 쿼리가 만들어져 성능 상의 문제가 일어날 경우 이렇게 join 방식으로 쿼리를 짜주는 `@EntityGraph` 어노테이션으로 해결할 수 있다.
-
+* N+1 문제: 연관 관계가 설정된 Entity를 조회할 경우 조회된 데이터 갯수(n)만큼 연관 관계의 조회 쿼리가 추가로 발생한다.
+#### 12) JPA 이용한 커스텀 쿼리 만들기
+* `UserRepository`, `CustomizedUserRepository`, `CustomizedUserRepositoryImpl`
+* JPQL 방식
+  * Spring Data JPA의 문서를 참고한다.
+  * `UserRepository`의 해당 메소드에` @Query()`안에 JPQL 쿼리를 작성하면 쿼리 문을 수행할 수 있다. 
+  * 'u'가 '*' 대신에 사용된다.
+  * "%?!%"로 앞뒤로 like 검색을 건다.
+* NativeQuery 방식: `UserRepository`의 해당 메소드의 `@Query(value = , nativeQuery = true)` 안에 작성한다.
+* QueryDsl 방식: `QuerydslPredicateExecutor<User>` 인터페이스를 implements
+* QueryDsl 커스텀 방식:  
+  * `CustomizedUserRepository`인터페이스 작성.
+    * `findByUsernameCustom` 메소드 작성
+  * `CustomizedUserRepositoryImpl` 구현체 작성.
+    * `@PersistenceContext` `private EntityManager` 생성 및 의존성 주입
+    * 스프링 깃허브의 custom dir를 참고하여 EntityManager 이용하여 작성한다.
+    * 수많은 커스텀이 가능하지만, QueryDsl 방식과 유사하게 구현한다. qUser를 사용하여 `contains`로 like 검색을 한다.
+    * `.fetch()`하면 List<User>가 리턴된다.
+  * `CustomizedUserRepository`를 `UserRepository`에 implement한다.
+* JDBC 
+  * `CustomizedUserRepository`에 findByUsernameJdbc 메소드 작성
+  * `CustomizedUserRepositoryImpl`
+    * `@Autowired` `JdbcTemplate` 생성 및 의존성 주입
+    * `findByUsernameJdbc` 메소드 작성
+      * `jdbcTemplate`의 `query` 메소드를 사용한다. 
+        * 첫번째 파라매터로 쿼리문을 작성한다.
+        * 두번째 파라매터로 `new Object[]{"%" + username + "%"}`로 받아온다. "%"는 전달할 파라매터에 작성되어야 한다.
+        * 세번째 파라매터로 `new BeanPropertyRowMapper`로 담아온다.
 
 ### 5. 서비스
 * `java/~/service/~`
@@ -362,7 +435,7 @@
 * AccountController에서 선언하여 사용하게 된다.
 * User를 인풋과 아웃풋으로 하는 save 메소드를 작성한다. 이때 `@AutoWired`로 UserRepository를 선언하고 `userRepository.save(user)`를 리턴한다.
 * 패스워드를 암호화한다.
-  * `WebSecurityConfig`에서 설언해둔 `PasswordEncoder`를 `@AutoWired`로 선언하여 사용한다.
+  * `WebSecurityConfig`에서 선언해둔 `PasswordEncoder`를 `@AutoWired`로 선언하여 사용한다.
   * `user.getPassword()`로 가져온 패스워드를 `passwordEncoder.encode()`메소드로 암호화한다.
   * 이 값을 `user.getPassword()`로 새롭게 저장해준다.
   * `user.setEnabled()`도 기본적으로 가입하면 true로 해준다.

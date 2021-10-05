@@ -23,15 +23,17 @@
         <h2>게시판</h2>
         <div>
             총 건수:
-            <!-- list의 크기에서 iterable한 page 객체의 크기를 getTotalElements로 가져올 수 있는데 thymeleaf 문법에 맞춰서 totlaElements로 변환 -->
+            <!-- list의 크기에서 iterable한 page 객체의 크기를 boards.getTotalElements()로 가져올 수 있는데 thymeleaf 문법에 맞춰서 ${boards.totalElements}로 불러와서 사용 -->
             <span th:text="${boards.totalElements}"></span>
         </div>
 
         <!-- flex를 이용한 우측정렬 get방식으로 url에 표현됨-->
+        <!--form 태그에만 `method="GET"`, `th:action="@{/board/list}"`으로 지정해주면, form 태그 내부의 `name=searchText` 값을 파라매터로 전달한다.-->
         <form class="form-inline d-flex justify-content-end" method="GET" th:action="@{/board/list}">
             <div class="form-group mx-sm-3 mb-2">
                 <label for="searchText" class="sr-only">검색</label>
                 <!-- param.text로 url에 있는 변수를 담을 수 있다. -->
+                <!-- `th:value=${param.searchText}`로 url에 있는 파라매터 값을 보여줄 수 있다. -->
                 <input type="text" class="form-control" id="searchText" name="searchText" th:value="${param.searchText}"/>
             </div>
             <button type="submit" class="btn btn-light mb-2">검색</button>
@@ -50,8 +52,11 @@
                 <tr th:each="board : ${boards}">
                     <td th:text="${board.id}">Mark</td>
                     <td>
+                        <!--   글의 제목을 클릭하면 그 글의 id값을 전달하면서 form으로 이동하게 한다.      -->
+                        <!--   BoardController의 GetMapping("/form") 에서 @RequestParam 어노테이션으로 파라매터를 전달 받고 조회한다.   -->
                         <a th:text="${board.title}" th:href="@{/board/form(id=${board.id})}">Otto</a>
                     </td>
+                    <!-- @OneToMany 관계 설정을 위해 기존에는 직접 입력했던 사용자 이름을 `th:text="${board.user.username}"`으로 대체한다.  -->
                     <td th:text="${board.user.username}">홍길동</td>
                 </tr>
             </tbody>
@@ -60,23 +65,31 @@
         <nav aria-label="Page navigation example">
             <ul class="pagination justify-content-center">
                 <li class="page-item" th:classappend="${1 == boards.pageable.pageNumber + 1} ? 'disabled'">
-                    <!-- 검색도 유지 -->
+                    <!-- searchText=${param.searchText}로 페이지를 이동해도 `searchText` 값을 전달하여 검색이 유지되도록 한다. -->
                     <a class="page-link" href="#" th:href="@{/board/list(page=${boards.pageable.pageNumber-1}, searchText = ${param.searchText} )}"
                         tabindex="-1" aria-disabled="true">이전</a>
                 </li>
-                <!-- 123페이지를 하드코딩이 아니라 each의 형태로 바꿈 controller에서 만든 startPage와 endPage -->
+                <!-- 123페이지를 하드코딩이 아니라 each의 형태로 바꾼다. controller에서 만든 startPage와 endPage -->
+                <!-- `li` 태그의 속성으로 `th:each=`로 컨트롤러에서 작성한 페이지 변수값을 가져온다.          -->
+                <!-- `i : ${#numbers.sequence(startPage, endPage)}`로 두 변수값으로 만든 시퀀스의 숫자 값 i를 정의한 후, `th:text=${i}`로 보여준다. -->
+                <!--  페이지가 본인 페이지일 때 본인, 페이지가 처음일때 previous 끝일때 next를 클릭하지 못하도록한다. -->
                 <li class="page-item" th:classappend="${i == boards.pageable.pageNumber + 1} ? 'disabled'"
                     th:each="i : ${#numbers.sequence(startPage, endPage)}">
                     <a class="page-link" href="#" th:href="@{/board/list(page=${i-1}, searchText = ${param.searchText})}" th:text="${i}">1</a>
                 </li>
                 <li class="page-item"
                     th:classappend="${boards.totalPages == boards.pageable.pageNumber + 1} ? 'disabled'">
+                    <!-- 페이지 이동 링크를 `th:href=`로 주되, 앞에서 컨트롤러에 파라매터로 준 `pageable` 변수의 입력 값을 `GetMapping("/list")` 에 전달한다.    -->
+                    <!-- `()`안에 변수의 입력값을 준다. -->
+                    <!-- 현재 페이지를 만들 때 받아온 `boards.pageable.pageNumber`를 이용한다.-->
                     <a class="page-link" href="#" th:href="@{/board/list(page=${boards.pageable.pageNumber+1}, searchText = ${param.searchText})}">다음</a>
                 </li>
             </ul>
         </nav>
 
         <div class="text-right">
+
+            <!--   id 없이 href 속성으로 form.html로 이동하도록 한다.      -->
             <a type="button" class="btn btn-primary" th:href="@{/board/form}">쓰기</a>
         </div>
     </div>

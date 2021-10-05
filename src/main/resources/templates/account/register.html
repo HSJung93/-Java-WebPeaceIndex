@@ -15,7 +15,7 @@
 </head>
 
 <body class="text-center">
-    <!-- 그냥 action으로 하면 csrf 토큰이 전달되지 않는다 -->
+    <!--  Sign in을 회원가입으로 포스트 요청을 보낼 곳을 `account/register`로 수정한다. -->
     <form class="form-signin" th:action="@{/account/register}" method="post">
         <a th:href="@{/}"><img class="mb-4" src="https://getbootstrap.com/docs/4.5/assets/brand/bootstrap-solid.svg" alt="" width="72" height="72"></a>
         <h1 class="h3 mb-3 font-weight-normal">회원가입</h1>

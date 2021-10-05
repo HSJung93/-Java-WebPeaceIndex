@@ -1,5 +1,5 @@
 <!doctype html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 
 <head th:replace="fragments/common :: head('게시판')">
     <!-- Required meta tags -->
@@ -21,11 +21,18 @@
 
     <div class="container">
         <h2>게시판</h2>
+        <!--  BoardController의 @PostMapping("/form") postForm 메소드로 포스트 요청      -->
+        <!--  th:object form submit을 할 때, form의 데이터가 th:object에 설정해둔 객체로 받아진다.     -->
         <form action="#" th:action="@{/board/form}" th:object="${board}" method="post">
+            <!--  th:object에 설정해 준 board 객체의 내부 필드 설정 -->
+            <!--  수정한 값을 보낼 때는 id도 보내야 컨트롤러에서 수정할 수 있다. View는 필요 없으므로 히든 타입의 input으로 핸들한다.  -->
             <input type="hidden" th:field="*{id}">
             <div class="form-group">
                 <label for="title">제목</label>
+                <!--     board 객체 내부의 title 필드로 form 태그 내부를 채운다.           -->
+                <!--     title과 관련된 에러가 있는지 확인하고 클래스 속성에 is-valid를 더한다.           -->
                 <input type="text" class="form-control" th:classappend="${#fields.hasErrors('title')} ? 'is-invalid'" id="title" th:field="*{title}">
+                <!--   th:errors="*{title}"로 타이틀 관련 에러 시 출력한다.    -->
                 <div class="invalid-feedback" th:if="${#fields.hasErrors('title')}" th:errors="*{title}">
                     제목 입력이 잘못되었습니다!
                 </div>
@@ -39,6 +46,9 @@
             </div>
             <div class="text-right">
                 <a class="btn btn-primary" th:href="@{/board/list}">취소</a>
+                <!--  api를 사용하고 크롬을 통하여 디버깅을 해보면 hidden type 속성과 _csrf name 속성의 그리고 암호화된 키값의 value 속성을 가진 input이 존재한다. 스프링 시큐리티의 `th:action`에 csrf 옵션이 활성화되어 있는 것이다. `WebSecurityConfig`에서 수정가능하다.             -->
+                <!-- 삭제 버튼을 ROLE_ADMIN 에게만 표시되도록 한다-->
+                <!--  `th:onclick="|deleteBoard(*{id})|` 로 타임리프 문법에 맞게 id 변수를 deleteBoard 함수에 넣는다. -->
                 <button type="button" sec:authorize="hasRole('ROLE_ADMIN')" class="btn btn-primary" th:onclick="|deleteBoard(*{id})|">삭제</button>
                 <button type="submit" class="btn btn-primary">확인</button>
             </div>
@@ -54,6 +64,10 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
         integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
         crossorigin="anonymous"></script>
+    <!-- 삭제 기능은 자바스크립트 ajax로 구현한다. -->
+    <!-- `$.ajax()` 의 url과 type를 입력하고, 성공시 콘솔 출력 함수를 만들어서 BoardApiController의 `@DeleteMapping("/boards/{id}")`를 호출한다. -->
+    <!-- `window.location.href = "/board/list"`로 이동할 주소를 설정한다.   -->
+    <!--  이 때 버튼만 가리면 postman등을 이용하여 사용자가 삭제할 수 있는 문제점이 있다. 따라서 서버에서 처리할 필요가 있다. 이를 위해 `MethodSecurityConfig`를 만들고 컨트롤러에 제약을 준다.  -->
     <script>
         function deleteBoard(id) {
             $.ajax({
